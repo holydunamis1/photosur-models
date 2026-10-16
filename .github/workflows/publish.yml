@@ -1,0 +1,25 @@
+name: Publish HD model
+# Runs on a push to the release-stage branch and publishes the model file
+# next to it as release "models-v1", the file the app downloads.
+on:
+  push:
+    branches: [release-stage]
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check size and hash
+        run: |
+          test "$(stat -c %s segmentation_hd.tflite)" = "88085892"
+          echo "7b898381005a2f6efb931f4cd59ec4f1ba7e806a12e9feb6b9efb504b92b556b  segmentation_hd.tflite" | sha256sum -c -
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete models-v1 --yes --cleanup-tag || true
+          gh release create models-v1 segmentation_hd.tflite \
+            --title "HD segmentation model v1" \
+            --notes "U2-Net (full) float16 TFLite. See NOTICE.md on the main branch."
